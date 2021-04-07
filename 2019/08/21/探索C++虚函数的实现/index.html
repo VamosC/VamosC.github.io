@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="L-Park">
 <meta property="og:description" content="前言继承、封装、多态是C++作为OO语言的三大特性。在学习C++的过程中，我们都对虚函数机制实现多态有或多或少的了解。尽管在日常的编程中，我们可能掌握了虚函数的特性并熟练地将其运用在项目中又或者根本搞不来C++而对虚函数望而生畏。别慌！本文将从底层揭秘虚函数究竟是怎么操作的，在运行过程中究竟执行的是什么样的代码。话不多说，搞快点！ 环境 操作系统：macOS Mojave 10.14.5 编译器：">
 <meta property="og:locale">
-<meta property="og:image" content="http://example.com/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
 <meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/2.png">
 <meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/3.png">
 <meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/5.png">
@@ -29,11 +29,11 @@
 <meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/12.png">
 <meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/13.png">
 <meta property="article:published_time" content="2019-08-21T12:47:03.000Z">
-<meta property="article:modified_time" content="2021-04-07T03:04:52.198Z">
+<meta property="article:modified_time" content="2021-04-07T03:27:09.176Z">
 <meta property="article:author" content="Liang Chao">
 <meta property="article:tag" content="C++">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
+<meta name="twitter:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
   
     <link rel="alternate" href="/atom.xml" title="L-Park" type="application/atom+xml">
   
@@ -80,10 +80,10 @@
         
           <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
         
-        <a id="nav-search-btn" class="nav-icon" title="Suche"></a>
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Suche"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
       </div>
     </div>
   </div>
@@ -126,7 +126,7 @@
 
 <p>我们无法在运行前知晓p所指向的真正类型，因此必须有合适的方法来解决这一问题。我们在学习过程中也听说过**虚函数表(vtable)、动态绑定(dynamic binding)**等名词，据说是用来实现虚函数的，那么其中的魔法究竟是怎么样的呢？让我们来深入了解一下！</p>
 <h3 id="虚函数表是啥？"><a href="#虚函数表是啥？" class="headerlink" title="虚函数表是啥？"></a>虚函数表是啥？</h3><p>之前我们就一直提到要深入了解深入了解，那么究竟是多深入呢？那自然是要通过反汇编来瞧一瞧啦！这里我们使用最开始的一段代码来分析。</p>
-<p><img src="/./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png"></p>
+<p><img src="/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png"></p>
 <p>首先我们注意到地址为<strong>0x0000000100000edf</strong>的指令<code>lea rdi, qword [rbp+var_20]</code>，这条指令等价于<code>rdi = rbp+var_20</code>（<code>rbp+var_20</code>是一个内存地址，而<code>[rbp+var_20]</code>代表该地址上的内容，<code>qword</code>指的是这个地址开始的包含8字节的内存空间），而这个地址正是<code>B b</code>的地址。下面我们进入派生类B的构造函数中观察构造函数（<code>call __ZN1BC1Ev</code>）如何构造这一对象。（<code>mov</code>指令可以理解为把右边的值赋给左边）</p>
 <p>这里先关注一下此时堆栈的情况：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">                   _____________________________</span><br><span class="line">                  |                             |                      高地址</span><br><span class="line">rbp -----&gt;        |                             |                        |</span><br><span class="line">                  |_____________________________|                        |</span><br><span class="line">                  |                             |                        |    堆栈向下增长</span><br><span class="line">                  |                             |                        |</span><br><span class="line">                  |_____________________________|                      \ | &#x2F;</span><br><span class="line">                  |                             |                       \ &#x2F;</span><br><span class="line">                  |                             |                      低地址       </span><br><span class="line">                  |_____________________________|          </span><br><span class="line">                  |                             |</span><br><span class="line">address of B b -&gt; |                             |        左侧一个空间8字节,假设最底下地址为</span><br><span class="line">                  |_____________________________|        0x1000, 那么上一个格子的地址为0x1008 </span><br><span class="line">                  |                             |</span><br><span class="line">                  |                             |</span><br><span class="line">                  |_____________________________|                  </span><br></pre></td></tr></table></figure>
@@ -195,7 +195,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-id="ckn6vupt60001j74t44vl2cwu" data-title="探索C++虚函数的实现" class="article-share-link">Teilen</a>
+      <a data-url="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-id="ckn6w4qmy0000g44t0qm23cdj" data-title="探索C++虚函数的实现" class="article-share-link">Share</a>
       
       
       
@@ -237,7 +237,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archiv</h3>
+    <h3 class="widget-title">Archives</h3>
     <div class="widget">
       <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a></li></ul>
     </div>
@@ -247,7 +247,7 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">letzter Beitrag</h3>
+    <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
         
