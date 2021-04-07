@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>探索C++虚函数的实现 | L-Park</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="前言继承、封装、多态是C++作为OO语言的三大特性。在学习C++的过程中，我们都对虚函数机制实现多态有或多或少的了解。尽管在日常的编程中，我们可能掌握了虚函数的特性并熟练地将其运用在项目中又或者根本搞不来C++而对虚函数望而生畏。别慌！本文将从底层揭秘虚函数究竟是怎么操作的，在运行过程中究竟执行的是什么样的代码。话不多说，搞快点！ 环境 操作系统：macOS Mojave 10.14.5 编译器：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="探索C++虚函数的实现">
+<meta property="og:url" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/index.html">
+<meta property="og:site_name" content="L-Park">
+<meta property="og:description" content="前言继承、封装、多态是C++作为OO语言的三大特性。在学习C++的过程中，我们都对虚函数机制实现多态有或多或少的了解。尽管在日常的编程中，我们可能掌握了虚函数的特性并熟练地将其运用在项目中又或者根本搞不来C++而对虚函数望而生畏。别慌！本文将从底层揭秘虚函数究竟是怎么操作的，在运行过程中究竟执行的是什么样的代码。话不多说，搞快点！ 环境 操作系统：macOS Mojave 10.14.5 编译器：">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/2.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/3.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/5.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/6.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/7.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/8.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/4.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/6.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/9.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/10.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/4.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/11.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/12.png">
+<meta property="og:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/13.png">
+<meta property="article:published_time" content="2019-08-21T12:47:03.000Z">
+<meta property="article:modified_time" content="2021-04-07T02:18:36.459Z">
+<meta property="article:author" content="Liang Chao">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png">
+  
+    <link rel="alternate" href="/atom.xml" title="L-Park" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">L-Park</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Suche"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Suche"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-探索C++虚函数的实现" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="article-date">
+  <time class="dt-published" datetime="2019-08-21T12:47:03.000Z" itemprop="datePublished">2019-08-21</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      探索C++虚函数的实现
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>继承、封装、多态是C++作为OO语言的三大特性。在学习C++的过程中，我们都对虚函数机制实现多态有或多或少的了解。尽管在日常的编程中，我们可能掌握了虚函数的特性并熟练地将其运用在项目中又或者根本搞不来C++而对虚函数望而生畏。别慌！本文将从底层揭秘虚函数究竟是怎么操作的，在运行过程中究竟执行的是什么样的代码。话不多说，搞快点！</p>
+<h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><ul>
+<li>操作系统：macOS Mojave 10.14.5</li>
+<li>编译器：Apple LLVM version 10.0.1 (clang-1001.0.46.4)</li>
+<li>工具：Hopper Disassembler v4</li>
+</ul>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><h3 id="虚函数是啥？"><a href="#虚函数是啥？" class="headerlink" title="虚函数是啥？"></a>虚函数是啥？</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="keyword">int</span> a;</span><br><span class="line">    <span class="keyword">int</span> b;</span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">f</span><span class="params">()</span> </span>&#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span> :</span> <span class="keyword">public</span> A</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="keyword">int</span> x;</span><br><span class="line">    <span class="keyword">int</span> y;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">()</span> <span class="keyword">override</span> </span>&#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B b;</span><br><span class="line">    A *x = &amp;b;</span><br><span class="line">    x-&gt;<span class="built_in">f</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>先让我们来看看简单的一段代码，<code>main</code>函数中实例化了一个派生类<code>B</code>的对象，然后使用基类指针去指向该对象，当该指针调用<code>f</code>成员的时候，调用的并不是基类<code> A</code>的成员函数而是派生类<code>B</code>的成员函数。原来如此！基类指针似乎能够根据其真正指向的对象类型来调用实际重载过的函数，这就是虚函数机制嘛！！？</p>
+<p>那么问题来了，这到底是如何实现的？可以通过编译器静态编译实现嘛？答案是不行的，比如我们随手写一手辣鸡代码。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">... <span class="comment">// 重用上述 class A B</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> x;</span><br><span class="line">    A* p;</span><br><span class="line">    A  a;</span><br><span class="line">    B  b;</span><br><span class="line">    <span class="keyword">while</span>(cin &gt;&gt; x)</span><br><span class="line">    &#123;</span><br><span class="line">        p = x &gt; <span class="number">0</span> ? &amp;a : &amp;b;</span><br><span class="line">        p-&gt;<span class="built_in">f</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们无法在运行前知晓p所指向的真正类型，因此必须有合适的方法来解决这一问题。我们在学习过程中也听说过**虚函数表(vtable)、动态绑定(dynamic binding)**等名词，据说是用来实现虚函数的，那么其中的魔法究竟是怎么样的呢？让我们来深入了解一下！</p>
+<h3 id="虚函数表是啥？"><a href="#虚函数表是啥？" class="headerlink" title="虚函数表是啥？"></a>虚函数表是啥？</h3><p>之前我们就一直提到要深入了解深入了解，那么究竟是多深入呢？那自然是要通过反汇编来瞧一瞧啦！这里我们使用最开始的一段代码来分析。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/1.png"></p>
+<p>首先我们注意到地址为<strong>0x0000000100000edf</strong>的指令<code>lea rdi, qword [rbp+var_20]</code>，这条指令等价于<code>rdi = rbp+var_20</code>（<code>rbp+var_20</code>是一个内存地址，而<code>[rbp+var_20]</code>代表该地址上的内容，<code>qword</code>指的是这个地址开始的包含8字节的内存空间），而这个地址正是<code>B b</code>的地址。下面我们进入派生类B的构造函数中观察构造函数（<code>call __ZN1BC1Ev</code>）如何构造这一对象。（<code>mov</code>指令可以理解为把右边的值赋给左边）</p>
+<p>这里先关注一下此时堆栈的情况：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">                   _____________________________</span><br><span class="line">                  |                             |                      高地址</span><br><span class="line">rbp -----&gt;        |                             |                        |</span><br><span class="line">                  |_____________________________|                        |</span><br><span class="line">                  |                             |                        |    堆栈向下增长</span><br><span class="line">                  |                             |                        |</span><br><span class="line">                  |_____________________________|                      \ | &#x2F;</span><br><span class="line">                  |                             |                       \ &#x2F;</span><br><span class="line">                  |                             |                      低地址       </span><br><span class="line">                  |_____________________________|          </span><br><span class="line">                  |                             |</span><br><span class="line">address of B b -&gt; |                             |        左侧一个空间8字节,假设最底下地址为</span><br><span class="line">                  |_____________________________|        0x1000, 那么上一个格子的地址为0x1008 </span><br><span class="line">                  |                             |</span><br><span class="line">                  |                             |</span><br><span class="line">                  |_____________________________|                  </span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/2.png"></p>
+<p>第一个函数似乎没有什么实质性的作用，因此我们进入下一个函数（<code>call __ZN1BC2Ev</code>）</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/3.png"></p>
+<p>注意此时<code>rdi</code>寄存器中存储的是<code>B b</code>的地址。我们注意到地址为<strong>0x0000000100000f38~0x0000000100000f47</strong>的指令执行后的效果是<code>rax = rdi = address of B b</code>。由于类B派生自类A，因此会调用A的构造函数，因此我们进入A的构造函数来看一看。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/5.png"></p>
+<p>注意此时<code>rdi</code>寄存器中存储仍然的是<code>B b</code>的地址。首先我们观察到地址为<strong>0x0000000100000f87</strong>的指令<code>mov qword [rdi], rax</code>，是将寄存器<code>rax</code>中的值赋给了<code>B b</code>的首8个字节，那么寄存器<code>rax</code>中存的是啥？我们看到前面有两条指令<code>mov rax, qword [0x100001000]</code>以及<code>add rax, 0x10</code>，于是我们追踪地址<strong>0x10000100</strong>，看看相应的内存块中存的是什么。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/6.png"></p>
+<p>我们发现其存放的依然是一个地址（可以理解为C语言中的指针），于是我们继续挖掘下去。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/7.png"></p>
+<p>wow！我们看到反汇编软件上表明这是基类A的<strong>vtable</strong>（虚函数表），而<code>rax += 0x10</code>所指向的地址为<strong>0x0000000100001068</strong>，我们发现前8个字节似乎有点玄机，取出来瞧瞧，由于我们的机器上遵循的是小端表示（little endian），因此应该是<strong>0x0000000100000fa0</strong>，似乎又是一个地址，我们继续追踪。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/8.png"></p>
+<p>于是我们来到了基类A的成员函数<code>f</code>，原来虚函数表中存储的是该函数的地址！不过别慌，我们还没有结束。构造完A后，我们继续分析B的构造函数。</p>
+<p>此前的堆栈情况发生变化：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">                   _____________________________</span><br><span class="line">                  |                             |                      高地址</span><br><span class="line">rbp -----&gt;        |                             |                        |</span><br><span class="line">                  |_____________________________|                        |</span><br><span class="line">                  |                             |                        |    堆栈向下增长</span><br><span class="line">                  |                             |                        |</span><br><span class="line">                  |_____________________________|                      \ | &#x2F;</span><br><span class="line">                  |                             |                       \ &#x2F;</span><br><span class="line">                  |                             |                      低地址        </span><br><span class="line">                  |_____________________________|        左侧一个空间8字节,假设最底下地址为</span><br><span class="line">                  |                             |        0x1000, 那么上一个格子的地址为0x1008</span><br><span class="line">address of B b -&gt; |   address of A&#39;s vtable     |_________</span><br><span class="line">                  |_____________________________|         |</span><br><span class="line">                  |                             |         |</span><br><span class="line">                  |                             |         |</span><br><span class="line">                  |_____________________________|         |         ______________________</span><br><span class="line">                                                          |         |                     |</span><br><span class="line">                                                          |         |                     |</span><br><span class="line">                                                          |         |_____________________|</span><br><span class="line">                                                          ---------&gt;|                     |</span><br><span class="line">                                                                    |  address of A::f    |</span><br><span class="line">                                                                    |_____________________|</span><br><span class="line">                  </span><br><span class="line">                  </span><br><span class="line">                  </span><br><span class="line">                  </span><br></pre></td></tr></table></figure>
+
+
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/4.png"></p>
+<p>我们在B的构造函数中同样发现像了类似的赋值情况，因此我们断定这是在操作B的<strong>vtable</strong>（虚函数表），于是继续追踪验证我们的猜想。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/6.png"></p>
+<p>追踪地址<strong>0x0000000100001010</strong></p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/9.png"></p>
+<p>果不其然，我们发现了B的<strong>vtable</strong>（虚函数表），同样地址<strong>0x0000000100000f90</strong>指向的是B的成员函数<code>f</code></p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/10.png"></p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/4.png"></p>
+<p>继续回到B的构造函数中，由于B的构造函数中，在执行A的构造函数之前，我们执行了<code>mov qword [rbp + var_10], rdi</code>的存储指令，因此在执行<code>mov qword [rbp + var_10], rdi</code>后，<code>rdi</code>寄存器指对象<code>B b</code>的地址。</p>
+<p>此前的堆栈情况继续变化（这里我们标注出成员变量的布局）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">                   _____________________________</span><br><span class="line">                  |                             |                      高地址</span><br><span class="line">rbp -----&gt;        |                             |                        |</span><br><span class="line">                  |_____________________________|                        |</span><br><span class="line">                  |                             |                        |    堆栈向下增长</span><br><span class="line">                  |      x      |       y       |                        |</span><br><span class="line">                  |_____________________________|                      \ | &#x2F;</span><br><span class="line">                  |                             |                       \ &#x2F;</span><br><span class="line">                  |      a      |       b       |                      低地址        </span><br><span class="line">                  |_____________________________|        左侧一个空间8字节,假设最底下地址为</span><br><span class="line">                  |                             |        0x1000, 那么上一个格子的地址为0x1008</span><br><span class="line">address of B b -&gt; |   address of B&#39;s vtable     |_________           </span><br><span class="line">                  |_____________________________|         |</span><br><span class="line">                  |                             |         |       在我的机器上int占4字节</span><br><span class="line">                  |                             |         |</span><br><span class="line">                  |_____________________________|         |         ______________________</span><br><span class="line">                                                          |         |                     |</span><br><span class="line">                                                          |         |                     |</span><br><span class="line">                                                          |         |_____________________|</span><br><span class="line">                                                          ---------&gt;|                     |</span><br><span class="line">                                                                    |  address of B::f    |</span><br><span class="line">                                                                    |_____________________|</span><br><span class="line">                  </span><br><span class="line">                  </span><br><span class="line">                  </span><br><span class="line">                  </span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="虚函数如何执行？"><a href="#虚函数如何执行？" class="headerlink" title="虚函数如何执行？"></a>虚函数如何执行？</h3><p>分析完虚函数表，让我们来看一看汇编代码中虚函数究竟被如何表达？</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/11.png"></p>
+<p>依然回到<code>main</code>函数中，我们继续向下分析：首先还是需要获得<code>B b</code>的地址，指令<code>lea rdi, qword[rbp+var_20] </code> <code>mov qword[rbp+var_28], rdi</code>即对应代码<code>A* x = &amp;b;</code>，获得地址并存放在局部变量中（栈上空间），然后<strong>关键</strong>的一步来了，指令<code>mov rax, qword [rdi]</code>，获得<code>B b</code>的首8个字节，我们回忆起之前得到的布局图，首8个字节不就是虚函数表的地址！然后看到指令<code>call qword [rax]</code>，一下子恍然大悟，虚函数表中的第一项不就是B的成员函数<code>f</code>的地址！也就是说，虚函数的机制实际上是通过在对象中存储的虚函数表的地址，追踪到编译生成出来附带在生成的可执行文件中某处的虚函数表，然后根据其中记录的具体的函数地址来实现调用的啊！</p>
+<h3 id="何时会触发虚函数机制？"><a href="#何时会触发虚函数机制？" class="headerlink" title="何时会触发虚函数机制？"></a>何时会触发虚函数机制？</h3><ul>
+<li>使用指针</li>
+</ul>
+<p>在上述的探索中，我们正是使用了这个方法，此外像下面这样调用也会触发虚函数机制。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">... <span class="comment">// 重用上述class A B</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B b;</span><br><span class="line">    A* x = &amp;b;</span><br><span class="line">    (*x).<span class="built_in">f</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>使用引用</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">... <span class="comment">// 重用上述class A B</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B b;</span><br><span class="line">    A&amp; x = b;</span><br><span class="line">    x.<span class="built_in">f</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>我们照例来看一下这段代码的汇编代码。</p>
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/12.png"></p>
+<p>我们发现使用引用的情况下，我们仍然触发了虚函数的机制。</p>
+<p>那么直接调用会是什么情况？整上代码！</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">... <span class="comment">// 重用上述class A B</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B b;</span><br><span class="line">    b.<span class="built_in">f</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="./%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/13.png"></p>
+<p>我们发现汇编代码直接调用成员函数。</p>
+<p>这也回答了为什么虚函数机制会带来更多的开销，当触发虚函数时，首先要取得存储在对象中的虚函数表的地址，这里需要一次内存寻址，然后通过该地址取得真正要调用的函数的地址，这里又是一次内存寻址，之后才开始进行真正的函数调用。因此我们不能过分依赖于虚函数机制，在类型明确的情况下更适合于直接调用。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>虚函数的实现依赖的是一张<strong>虚函数表（vtable）</strong>，由编译器编译生成并存放在某处，程序运行时在构造对象时会将该地址存放在对象中。在真正调用的时候会先通过存储在对象中的虚函数表的地址，寻找得到真正需要调用的成员函数的地址。</p>
+<p><strong>才疏学浅，如有纰漏，不吝赐教！</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/" data-id="ckn6txc5e0002it4tgzu6e4xm" data-title="探索C++虚函数的实现" class="article-share-link">Teilen</a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/C/" rel="tag">C++</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2019/01/20/8086%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80%E5%A4%8D%E4%B9%A0/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Älter</strong>
+      <div class="article-nav-title">8086汇编语言复习</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Assembly/" rel="tag">Assembly</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/C/" rel="tag">C++</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Assembly/" style="font-size: 10px;">Assembly</a> <a href="/tags/C/" style="font-size: 10px;">C++</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archiv</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">letzter Beitrag</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/08/21/%E6%8E%A2%E7%B4%A2C++%E8%99%9A%E5%87%BD%E6%95%B0%E7%9A%84%E5%AE%9E%E7%8E%B0/">探索C++虚函数的实现</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/20/8086%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80%E5%A4%8D%E4%B9%A0/">8086汇编语言复习</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2021 Liang Chao<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
