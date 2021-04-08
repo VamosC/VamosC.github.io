@@ -202,6 +202,10 @@
                 
 
                 
+                <!-- gittalk 评论框 start -->
+                <div id="gitalk-container"></div>
+                <!-- gittalk 评论框 end -->
+                
 
                 
                 <!-- disqus 评论框 start -->
@@ -245,6 +249,25 @@
 
 
 
+
+<!-- gitalk 公共JS代码 start (一个网页只需插入一次) -->
+
+<!-- gitalk 公共JS代码 end -->
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script type="text/javascript">
+var gitalk = new Gitalk({
+        clientID: '5cf7afbb52304473ba19',
+        clientSecret: 'fff3ef62fe2c1b6c92a21a02ee41859bb0d5dc2f',
+        id: md5(window.location.pathname),
+        repo: 'VamosC.github.io',
+        owner: 'VamosC',
+        admin: 'VamosC',
+        distractionFreeMode: 'true',
+		})
+    gitalk.render('gitalk-container')
+</script>
 
 
 
